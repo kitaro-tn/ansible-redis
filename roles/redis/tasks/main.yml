@@ -1,0 +1,31 @@
+- name: Install Redis dependencies
+  package: name={{ item }} state=latest
+  with_items:
+    - gcc
+
+- name: download redis
+  get_url: url=http://download.redis.io/releases/redis-{{ version }}.tar.gz dest=/usr/src
+
+- name: unfreeze redis
+  shell: cd /usr/src && tar -xvzf redis-{{ version }}.tar.gz
+
+- name: install redis
+  shell: cd /usr/src/redis-{{ version }} && make && make install
+
+- name: create directory config and data
+  file: path={{ item }} state=directory
+  with_items:
+    - /etc/redis
+    - /var/redis/{{ port }}
+
+- name: add deamon
+  template: src=redis-server.j2 dest=/etc/init.d/redis_{{ port }} group=root owner=root mode=0755
+
+- name: setting config file
+  template: src=redis.conf.j2 dest=/etc/redis/{{ port }}.conf group=root owner=root mode=0644
+
+- name: setting sysconfig file
+  template: src=sysconfig-redis.j2 dest=/etc/sysconfig/redis group=root owner=root mode=0644
+
+- name: start redis service
+  service:  name=redis_{{ port }} state=started enabled=yes
